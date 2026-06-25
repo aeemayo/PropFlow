@@ -42,10 +42,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 
       if (user?.walletAddress != null && user!.walletAddress!.isNotEmpty) {
         try {
-          _tokenBalance =
-              await contractService.getTokenBalance(user.walletAddress!);
-          _usdcBalance =
-              await contractService.getUsdcBalance(user.walletAddress!);
+          _tokenBalance = await contractService.getTokenBalance(
+            user.walletAddress!,
+          );
+          _usdcBalance = await contractService.getUsdcBalance(
+            user.walletAddress!,
+          );
         } catch (e) {
           debugPrint('Contract call failed: $e');
         }
@@ -63,9 +65,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please sign in')),
-      );
+      return const Scaffold(body: Center(child: Text('Please sign in')));
     }
 
     final firestoreService = context.read<FirestoreService>();
@@ -131,8 +131,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                     const SizedBox(height: 12),
 
                     StreamBuilder<List<PropertyTransaction>>(
-                      stream:
-                          firestoreService.streamUserTransactions(uid),
+                      stream: firestoreService.streamUserTransactions(uid),
                       builder: (context, snapshot) {
                         final txs = snapshot.data ?? [];
 
@@ -199,9 +198,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           colors: [Color(0xFF0A2A2A), Color(0xFF0D1B2F)],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppTheme.primary.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
             color: AppTheme.primary.withValues(alpha: 0.1),
@@ -215,10 +212,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         children: [
           Text(
             'Total Holdings',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppTheme.textMuted,
-            ),
+            style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted),
           ),
           const SizedBox(height: 8),
           _isLoading
@@ -257,7 +251,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             children: [
               _BalanceStat(
                 label: 'USDC Balance',
-                value: '${usdcDisplay.toStringAsFixed(2)}',
+                value: usdcDisplay.toStringAsFixed(2),
                 icon: Icons.account_balance_wallet_outlined,
               ),
               _BalanceStat(
@@ -315,8 +309,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               color: AppTheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.account_balance_wallet_outlined,
-                color: AppTheme.primary, size: 20),
+            child: const Icon(
+              Icons.account_balance_wallet_outlined,
+              color: AppTheme.primary,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -342,8 +339,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             ),
           ),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: AppTheme.success.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
@@ -387,10 +383,7 @@ class _BalanceStat extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppTheme.textMuted,
-              ),
+              style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
             ),
           ],
         ),
@@ -442,10 +435,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: AppTheme.textMuted,
-            ),
+            style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
           ),
         ],
       ),
@@ -499,9 +489,7 @@ class _TransactionTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  isPurchase
-                      ? '${tx.shares} shares'
-                      : 'Distribution',
+                  isPurchase ? '${tx.shares} shares' : 'Distribution',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppTheme.textMuted,

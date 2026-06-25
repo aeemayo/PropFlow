@@ -1,7 +1,3 @@
-/// Constants for Arc Testnet and contract addresses.
-///
-/// Update the contract addresses after deploying via Remix IDE.
-
 class AppConstants {
   AppConstants._();
 
@@ -17,17 +13,17 @@ class AppConstants {
 
   // ── Deployed Contract Addresses (UPDATE AFTER REMIX DEPLOYMENT) ──
   static const String kycRegistryAddress =
-      '0x0000000000000000000000000000000000000000'; // TODO: Replace after deploy
+      '0x0000000000000000000000000000000000000000';
   static const String propTokenAddress =
-      '0x0000000000000000000000000000000000000000'; // TODO: Replace after deploy
+      '0x0000000000000000000000000000000000000000';
   static const String rentDistributorAddress =
-      '0x0000000000000000000000000000000000000000'; // TODO: Replace after deploy
+      '0x0000000000000000000000000000000000000000';
   static const String propertyRegistryAddress =
-      '0x0000000000000000000000000000000000000000'; // TODO: Replace after deploy
+      '0x0000000000000000000000000000000000000000';
 
   // ── Circle API (placeholder — configure after console.circle.com signup) ──
   static const String circleApiBaseUrl = 'https://api.circle.com';
-  static const String circleApiKey = 'YOUR_CIRCLE_API_KEY'; // TODO: Replace
+  static const String circleApiKey = 'YOUR_CIRCLE_API_KEY';
 
   // ── Demo Property ──
   static const String demoPropertyName = 'Marina Studio — Dubai';
@@ -40,5 +36,5 @@ class AppConstants {
 
   // ── Cloud Functions base URL (update after Firebase deploy) ──
   static const String cloudFunctionsBaseUrl =
-      'https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net'; // TODO: Replace
+      'https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net';
 }
