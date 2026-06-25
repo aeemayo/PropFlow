@@ -1,0 +1,46 @@
+name: propflow_app
+description: "PropFlow — Fractional Real Estate Tokenization on Arc"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Firebase
+  firebase_core: ^4.11.0
+  firebase_auth: ^6.5.4
+  cloud_firestore: ^6.6.0
+  google_sign_in: ^7.2.0
+
+  # Web3
+  web3dart: ^3.0.2
+  wallet: ^0.0.18
+  http: ^1.6.0
+
+  # State management
+  provider: ^6.1.5+1
+
+  # Utils
+  intl: ^0.20.3
+  url_launcher: ^6.3.2
+  flutter_svg: ^2.1.0
+  google_fonts: ^8.1.0
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/abi/

@@ -1,0 +1,24 @@
+{
+  "name": "propflow-functions",
+  "description": "PropFlow Firebase Cloud Functions — Circle Wallets & Gateway integration",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^4.9.0",
+    "firebase-admin": "^12.0.0",
+    "axios": "^1.7.0",
+    "ethers": "^6.13.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}

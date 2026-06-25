@@ -1,0 +1,69 @@
+# ==============================================================================
+# PropFlow — Root Git Ignore
+# ==============================================================================
+
+# ── Environment & Secrets ──
+.env
+.env.local
+.env.*.local
+.env.secret
+.env.secret.*
+*.env
+!*.env.example
+
+# ── OS Files ──
+.DS_Store
+Thumbs.db
+*.db
+*.log
+
+# ── IDEs & Editors ──
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ── Node.js / Firebase Functions ──
+**/node_modules/
+/functions/.runtimeconfig.json
+/functions/lib/
+/functions/npm-debug.log*
+/functions/yarn-debug.log*
+/functions/yarn-error.log*
+/functions/firebase-debug.log*
+firebase-debug.log*
+ui-debug.log*
+
+# ── Firebase Runtime ──
+.firebase/
+.firebaserc
+
+# ── Flutter / Dart ──
+**/doc/api/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+**/coverage/
+app.*.symbols
+app.*.map.json
+flutter_app/android/app/debug/
+flutter_app/android/app/profile/
+flutter_app/android/app/release/
+flutter_app/ios/Flutter/.last_build_id
+
+# ── Hardhat / Smart Contracts ──
+**/artifacts/
+**/cache/
+typechain/
+typechain-types/
+coverage/
+coverage.json
