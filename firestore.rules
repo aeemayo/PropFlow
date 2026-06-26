@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Authenticated users can read/write properties and transactions
+    match /properties/{propertyId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null; // Admin verification would be server-side or auth-based
+    }
+    match /transactions/{transactionId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}

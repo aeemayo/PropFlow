@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "51630635889",
+    "project_id": "propflow-aeem-26",
+    "storage_bucket": "propflow-aeem-26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51630635889:android:dafcac3cc4f1507fc494d0",
+        "android_client_info": {
+          "package_name": "com.propflow.propflow_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAv9KjLaxkYv3WwmUOEl08GhoxBHQyF7rE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

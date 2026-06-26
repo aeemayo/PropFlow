@@ -36,5 +36,5 @@ class AppConstants {
 
   // ── Cloud Functions base URL (update after Firebase deploy) ──
   static const String cloudFunctionsBaseUrl =
-      'https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net';
+      'https://us-central1-propflow-aeem-26.cloudfunctions.net';
 }
