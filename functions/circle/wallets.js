@@ -22,7 +22,7 @@ const functions = require("firebase-functions");
 // Circle API configuration
 // TODO: Replace with your Circle API key from console.circle.com
 const CIRCLE_API_KEY =
-  functions.config().circle?.api_key || "YOUR_CIRCLE_API_KEY";
+  process.env.CIRCLE_API_KEY || "YOUR_CIRCLE_API_KEY";
 const CIRCLE_BASE_URL = "https://api.circle.com";
 
 // Axios instance with auth headers

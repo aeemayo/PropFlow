@@ -28,12 +28,12 @@ const ARC_CHAIN_ID = 5042002;
 
 // Contract configuration (update after Remix deployment)
 const RENT_DISTRIBUTOR_ADDRESS =
-  functions.config().contracts?.rent_distributor ||
-  "0x0000000000000000000000000000000000000000"; // TODO: Replace
+  process.env.RENT_DISTRIBUTOR_ADDRESS ||
+  "0x0000000000000000000000000000000000000000";
 
 const ADMIN_PRIVATE_KEY =
-  functions.config().admin?.private_key ||
-  "0x0000000000000000000000000000000000000000000000000000000000000000"; // TODO: Replace
+  process.env.ADMIN_PRIVATE_KEY ||
+  "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 // Minimal ABI for RentDistributor
 const RENT_DISTRIBUTOR_ABI = [
