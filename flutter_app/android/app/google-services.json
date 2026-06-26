@@ -12,7 +12,20 @@
           "package_name": "com.propflow.propflow_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "51630635889-ujg716m2vdo399vtp6206ugjmlgailvh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.propflow.propflow_app",
+            "certificate_hash": "77257f46879000d2a7f0563a38ec9dc200b3c2dd"
+          }
+        },
+        {
+          "client_id": "51630635889-m7ljb060k8itq48tk2ntvr5s1rasjat7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAv9KjLaxkYv3WwmUOEl08GhoxBHQyF7rE"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "51630635889-m7ljb060k8itq48tk2ntvr5s1rasjat7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "51630635889-2adrq7k7g0jai4m75j06v0vnsmlnijo7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.propflow.propflowApp"
+              }
+            }
+          ]
         }
       }
     }
