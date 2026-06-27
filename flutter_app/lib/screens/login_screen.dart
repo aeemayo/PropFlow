@@ -20,6 +20,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   bool _isLoading = false;
+  String _statusMessage = '';
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
@@ -50,7 +51,10 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _statusMessage = '';
+    });
 
     try {
       await GoogleSignIn.instance.initialize(
@@ -68,7 +72,6 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (user != null && mounted) {
         final firestoreService = context.read<FirestoreService>();
-        final circleWalletService = context.read<CircleWalletService>();
 
         // Check if user profile exists
         var profile = await firestoreService.getUser(user.uid);
@@ -81,13 +84,12 @@ class _LoginScreenState extends State<LoginScreen>
             displayName: user.displayName ?? '',
           );
           await firestoreService.createUser(profile);
+        }
 
-          // Create Circle wallet (async, non-blocking)
-          _createWalletInBackground(
-            user.uid,
-            firestoreService,
-            circleWalletService,
-          );
+        // Blocking wallet creation if not already set
+        if (profile.walletAddress == null || profile.walletAddress!.isEmpty) {
+          setState(() => _statusMessage = 'Setting up your Arc wallet...');
+          await _createWalletBlocking(user.uid);
         }
 
         // Seed demo property
@@ -106,17 +108,21 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _statusMessage = '';
+        });
+      }
     }
   }
 
-  Future<void> _createWalletInBackground(
-    String uid,
-    FirestoreService firestoreService,
-    CircleWalletService circleWalletService,
-  ) async {
+  Future<void> _createWalletBlocking(String uid) async {
+    setState(() => _statusMessage = 'Creating your Arc wallet...');
+    final walletService = context.read<CircleWalletService>();
+    final firestoreService = context.read<FirestoreService>();
     try {
-      final walletResult = await circleWalletService.createWallet(uid);
+      final walletResult = await walletService.createWallet(uid);
       if (walletResult != null) {
         await firestoreService.updateUser(uid, {
           'walletId': walletResult['walletId'],
@@ -125,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       debugPrint('Circle wallet creation failed: $e');
+      // Non-fatal — user can still proceed; wallet creation retried on next login
     }
   }
 
@@ -194,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 8),
 
                     Text(
-                      'Fractional Real Estate on Arc',
+                      'Tokenized Nigerian Real Estate on Arc',
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         color: AppTheme.textSecondary,
@@ -262,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen>
                     // Sign in button
                     SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: _statusMessage.isNotEmpty ? 80 : 56,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _signInWithGoogle,
                         style: ElevatedButton.styleFrom(
@@ -274,13 +281,29 @@ class _LoginScreenState extends State<LoginScreen>
                           elevation: 0,
                         ),
                         child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFF1A1A2E),
-                                ),
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF1A1A2E),
+                                    ),
+                                  ),
+                                  if (_statusMessage.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _statusMessage,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFF1A1A2E),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

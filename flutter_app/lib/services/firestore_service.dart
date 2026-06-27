@@ -40,13 +40,11 @@ class FirestoreService {
   Future<void> submitKyc(
     String uid, {
     required String fullName,
-    required String nationality,
-    required String emiratesId,
+    required String nin,
   }) async {
     await _db.collection('users').doc(uid).update({
       'fullName': fullName,
-      'nationality': nationality,
-      'emiratesId': emiratesId,
+      'nin': nin,
       'kycStatus': 'pending',
     });
   }

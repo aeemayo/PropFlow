@@ -36,9 +36,9 @@ class AppConstants {
   static const String circleApiKey = 'YOUR_CIRCLE_API_KEY';
 
   // ── Demo Property ──
-  static const String demoPropertyName = 'Marina Studio — Dubai';
-  static const String demoReraNumber = 'RERA-DXB-2024-00142';
-  static const String demoLocation = 'Dubai Marina, UAE';
+  static const String demoPropertyName = 'Lekki Heights — Lagos';
+  static const String demoReraNumber = 'LASRERA-LAG-2024-00891';
+  static const String demoLocation = 'Lekki Phase 1, Lagos, Nigeria';
   static const double demoValuation = 200000;
   static const int demoTotalShares = 100000;
   static const double demoPricePerShare = 2.0;

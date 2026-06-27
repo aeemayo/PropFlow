@@ -17,8 +17,7 @@ class UserProfile {
 
   // KYC fields
   final String? fullName;
-  final String? nationality;
-  final String? emiratesId;
+  final String? nin;           // National Identification Number (11 digits)
 
   UserProfile({
     required this.uid,
@@ -29,8 +28,7 @@ class UserProfile {
     this.walletAddress,
     DateTime? createdAt,
     this.fullName,
-    this.nationality,
-    this.emiratesId,
+    this.nin,
   }) : createdAt = createdAt ?? DateTime.now();
 
   bool get isKycApproved => kycStatus == KycStatus.approved;
@@ -47,8 +45,7 @@ class UserProfile {
       walletAddress: data['walletAddress'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       fullName: data['fullName'],
-      nationality: data['nationality'],
-      emiratesId: data['emiratesId'],
+      nin: data['nin'],
     );
   }
 
@@ -60,8 +57,7 @@ class UserProfile {
         'walletAddress': walletAddress,
         'createdAt': Timestamp.fromDate(createdAt),
         'fullName': fullName,
-        'nationality': nationality,
-        'emiratesId': emiratesId,
+        'nin': nin,
       };
 
   UserProfile copyWith({
@@ -69,8 +65,7 @@ class UserProfile {
     String? walletId,
     String? walletAddress,
     String? fullName,
-    String? nationality,
-    String? emiratesId,
+    String? nin,
   }) =>
       UserProfile(
         uid: uid,
@@ -81,8 +76,7 @@ class UserProfile {
         walletAddress: walletAddress ?? this.walletAddress,
         createdAt: createdAt,
         fullName: fullName ?? this.fullName,
-        nationality: nationality ?? this.nationality,
-        emiratesId: emiratesId ?? this.emiratesId,
+        nin: nin ?? this.nin,
       );
 
   static KycStatus _parseKycStatus(String? status) {

@@ -5,12 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../utils/theme.dart';
 import '../services/firestore_service.dart';
 import '../services/contract_service.dart';
+import '../services/cloud_function_service.dart';
 import '../models/user_profile.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
-
-  static String adminPrivateKey = 'YOUR_ADMIN_PRIVATE_KEY';
 
   @override
   State<AdminScreen> createState() => _AdminScreenState();
@@ -21,39 +20,11 @@ class _AdminScreenState extends State<AdminScreen> {
   String? _lastDistributionTx;
 
   Future<void> _triggerDistribution() async {
-    final key = AdminScreen.adminPrivateKey.trim();
-    if (key == 'YOUR_ADMIN_PRIVATE_KEY' || key.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter your Admin Private Key in the Configuration section first.'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-      }
-      return;
-    }
-
-    final cleanedKey = key.startsWith('0x') ? key.substring(2) : key;
-    if (cleanedKey.length != 64) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid Private Key. Must be a 64-character hex string.'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-      }
-      return;
-    }
-
     setState(() => _isDistributing = true);
 
     try {
-      final contractService = context.read<ContractService>();
-      final txHash = await contractService.distributeRent(
-        privateKey: key,
-      );
+      final cloudFunctions = context.read<CloudFunctionService>();
+      final txHash = await cloudFunctions.distributeRentOnChain();
 
       setState(() => _lastDistributionTx = txHash);
 
@@ -105,15 +76,7 @@ class _AdminScreenState extends State<AdminScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Admin Configuration ──
-                  _SectionHeader(
-                    icon: Icons.admin_panel_settings_rounded,
-                    title: 'Admin Configuration',
-                    color: AppTheme.primary,
-                  ),
-                  const SizedBox(height: 12),
-                  const _AdminConfigCard(),
-                  const SizedBox(height: 28),
+
 
                   // ── Section 1: Rent Distribution ──
                   _SectionHeader(
@@ -258,8 +221,6 @@ class _AdminScreenState extends State<AdminScreen> {
                             .map((user) => _KycRequestCard(
                                   user: user,
                                   firestoreService: firestoreService,
-                                  contractService:
-                                      context.read<ContractService>(),
                                 ))
                             .toList(),
                       );
@@ -396,12 +357,10 @@ class _AdminStat extends StatelessWidget {
 class _KycRequestCard extends StatefulWidget {
   final UserProfile user;
   final FirestoreService firestoreService;
-  final ContractService contractService;
 
   const _KycRequestCard({
     required this.user,
     required this.firestoreService,
-    required this.contractService,
   });
 
   @override
@@ -416,25 +375,18 @@ class _KycRequestCardState extends State<_KycRequestCard> {
     setState(() => _isApproving = true);
 
     try {
+      final cloudFunctions = context.read<CloudFunctionService>();
+
       // 1. Approve in Firestore
       await widget.firestoreService.approveKyc(widget.user.uid);
 
       // 2. Approve on-chain via KYCRegistry (if wallet exists)
       if (widget.user.walletAddress != null &&
           widget.user.walletAddress!.isNotEmpty) {
-        final key = AdminScreen.adminPrivateKey.trim();
-        final cleanedKey = key.startsWith('0x') ? key.substring(2) : key;
-        if (key != 'YOUR_ADMIN_PRIVATE_KEY' && key.isNotEmpty && cleanedKey.length == 64) {
-          try {
-            await widget.contractService.approveKyc(
-              privateKey: key,
-              investorAddress: widget.user.walletAddress!,
-            );
-          } catch (e) {
-            debugPrint('On-chain KYC approve failed: $e');
-          }
-        } else {
-          debugPrint('On-chain KYC approval skipped: Admin Private Key not configured.');
+        try {
+          await cloudFunctions.approveKycOnChain(widget.user.walletAddress!);
+        } catch (e) {
+          debugPrint('On-chain KYC approve failed: $e');
         }
       }
 
@@ -546,10 +498,8 @@ class _KycRequestCardState extends State<_KycRequestCard> {
           const SizedBox(height: 12),
 
           // KYC details
-          if (widget.user.nationality != null)
-            _DetailRow('Nationality', widget.user.nationality!),
-          if (widget.user.emiratesId != null)
-            _DetailRow('Emirates ID', widget.user.emiratesId!),
+          if (widget.user.nin != null)
+            _DetailRow('NIN', widget.user.nin!),
           if (widget.user.walletAddress != null)
             _DetailRow(
               'Wallet',
@@ -890,95 +840,3 @@ class _ContractInfoCard extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────
-//  Admin Configuration Card
-// ──────────────────────────────────────────────────
-
-class _AdminConfigCard extends StatefulWidget {
-  const _AdminConfigCard();
-
-  @override
-  State<_AdminConfigCard> createState() => _AdminConfigCardState();
-}
-
-class _AdminConfigCardState extends State<_AdminConfigCard> {
-  late TextEditingController _controller;
-  bool _obscureText = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: AdminScreen.adminPrivateKey);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: AppTheme.glassCard,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Admin Private Key (Hex)',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _controller,
-            obscureText: _obscureText,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 14,
-              color: AppTheme.textPrimary,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Enter 64-character hex private key...',
-              hintStyle: GoogleFonts.inter(color: AppTheme.textMuted),
-              filled: true,
-              fillColor: const Color(0xFF0F1626).withValues(alpha: 0.5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF2A3352)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppTheme.primary),
-              ),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: AppTheme.textMuted,
-                  size: 20,
-                ),
-                onPressed: () {
-                  setState(() => _obscureText = !_obscureText);
-                },
-              ),
-            ),
-            onChanged: (val) {
-              AdminScreen.adminPrivateKey = val;
-            },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Required to sign on-chain KYC approvals and rent distributions. Keep this key secure and never share it.',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: AppTheme.textMuted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

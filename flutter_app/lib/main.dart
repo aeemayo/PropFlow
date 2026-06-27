@@ -7,6 +7,7 @@ import 'utils/theme.dart';
 import 'services/firestore_service.dart';
 import 'services/contract_service.dart';
 import 'services/circle_wallet_service.dart';
+import 'services/cloud_function_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/property_listing_screen.dart';
 import 'screens/kyc_screen.dart';
@@ -30,6 +31,7 @@ class PropFlowApp extends StatelessWidget {
         Provider<FirestoreService>(create: (_) => FirestoreService()),
         Provider<ContractService>(create: (_) => ContractService()),
         Provider<CircleWalletService>(create: (_) => CircleWalletService()),
+        Provider<CloudFunctionService>(create: (_) => CloudFunctionService()),
       ],
       child: MaterialApp(
         title: 'PropFlow',

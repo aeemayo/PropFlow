@@ -17,15 +17,13 @@ class KycScreen extends StatefulWidget {
 class _KycScreenState extends State<KycScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
-  final _nationalityController = TextEditingController();
-  final _emiratesIdController = TextEditingController();
+  final _ninController = TextEditingController();
   bool _isSubmitting = false;
 
   @override
   void dispose() {
     _fullNameController.dispose();
-    _nationalityController.dispose();
-    _emiratesIdController.dispose();
+    _ninController.dispose();
     super.dispose();
   }
 
@@ -42,8 +40,7 @@ class _KycScreenState extends State<KycScreen> {
       await firestoreService.submitKyc(
         uid,
         fullName: _fullNameController.text.trim(),
-        nationality: _nationalityController.text.trim(),
-        emiratesId: _emiratesIdController.text.trim(),
+        nin: _ninController.text.trim(),
       );
 
       if (mounted) {
@@ -93,7 +90,7 @@ class _KycScreenState extends State<KycScreen> {
               icon: Icons.verified_rounded,
               iconColor: AppTheme.success,
               title: 'KYC Approved',
-              subtitle: 'Your identity has been verified. You can now trade property tokens.',
+              subtitle: 'Your identity has been verified. You can now invest in tokenized real estate.',
               showForm: false,
             );
           }
@@ -103,7 +100,7 @@ class _KycScreenState extends State<KycScreen> {
               icon: Icons.hourglass_top_rounded,
               iconColor: AppTheme.warning,
               title: 'Verification Pending',
-              subtitle: 'Your KYC application is under review. This usually takes a few minutes.',
+              subtitle: 'Your NIN application is under review. This usually takes a few minutes.',
               showForm: false,
             );
           }
@@ -192,7 +189,7 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Complete your KYC to start investing in tokenized real estate.',
+              'Enter your details to start investing in tokenized Nigerian real estate.',
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: AppTheme.textSecondary,
@@ -206,7 +203,7 @@ class _KycScreenState extends State<KycScreen> {
             TextFormField(
               controller: _fullNameController,
               decoration: const InputDecoration(
-                hintText: 'As per your Emirates ID',
+                hintText: 'As per your NIN slip',
                 prefixIcon: Icon(Icons.person_outline_rounded,
                     color: AppTheme.textMuted),
               ),
@@ -217,37 +214,25 @@ class _KycScreenState extends State<KycScreen> {
 
             const SizedBox(height: 20),
 
-            // Nationality
-            _buildLabel('Nationality'),
+            // NIN
+            _buildLabel('NIN'),
             const SizedBox(height: 8),
             TextFormField(
-              controller: _nationalityController,
+              controller: _ninController,
               decoration: const InputDecoration(
-                hintText: 'e.g. UAE, India, UK',
-                prefixIcon:
-                    Icon(Icons.flag_outlined, color: AppTheme.textMuted),
-              ),
-              style: GoogleFonts.inter(color: AppTheme.textPrimary),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-
-            const SizedBox(height: 20),
-
-            // Emirates ID
-            _buildLabel('Emirates ID Number'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _emiratesIdController,
-              decoration: const InputDecoration(
-                hintText: '784-XXXX-XXXXXXX-X',
+                hintText: '11-digit National Identification Number',
                 prefixIcon:
                     Icon(Icons.badge_outlined, color: AppTheme.textMuted),
               ),
               style: GoogleFonts.inter(color: AppTheme.textPrimary),
-              keyboardType: TextInputType.text,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Required';
+                if (!RegExp(r'^\d{11}$').hasMatch(v.trim())) {
+                  return 'NIN must be exactly 11 digits';
+                }
+                return null;
+              },
             ),
 
             const SizedBox(height: 12),
@@ -266,7 +251,7 @@ class _KycScreenState extends State<KycScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Your KYC data is stored securely. Approval grants on-chain access via KYCRegistry.',
+                      'Your NIN is verified by NIMC. Approval grants on-chain access via KYCRegistry.',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppTheme.info,

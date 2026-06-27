@@ -9,6 +9,7 @@
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const { ethers } = require('ethers');
 
 admin.initializeApp();
 
@@ -158,3 +159,161 @@ exports.onUserCreated = functions.firestore
 
     return null;
   });
+
+// ══════════════════════════════════════════════
+//  On-chain Write Operations — Platform Signing
+//  All use ADMIN_PRIVATE_KEY from .env
+// ══════════════════════════════════════════════
+
+const ARC_RPC      = process.env.ARC_TESTNET_RPC || 'https://rpc.testnet.arc.network';
+const ARC_CHAIN_ID = parseInt(process.env.ARC_CHAIN_ID || '5042002');
+
+function getPlatformSigner() {
+  const provider = new ethers.JsonRpcProvider(ARC_RPC, ARC_CHAIN_ID);
+  return new ethers.Wallet(process.env.ADMIN_PRIVATE_KEY, provider);
+}
+
+// Minimal ABIs
+const KYC_ABI = ['function approve(address investor) external'];
+const PROPTOKEN_ABI = [
+  'function purchaseFor(address recipient, uint256 amount) external',
+  'function pricePerToken() view returns (uint256)',
+];
+const USDC_ABI = ['function approve(address spender, uint256 amount) external returns (bool)'];
+const DISTRIBUTOR_ABI = ['function distributeRent() external'];
+
+/**
+ * purchaseShares — buy PropTokens on behalf of an investor.
+ *
+ * Body: { userId: string, shares: number }
+ * Flow:
+ *   1. Look up investor's walletAddress from Firestore
+ *   2. Platform wallet approves USDC spend on PropToken contract
+ *   3. Platform wallet calls PropToken.purchaseFor(walletAddress, amount)
+ *   4. Returns { txHash }
+ */
+exports.purchaseShares = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    const { userId, shares } = req.body;
+    if (!userId || !shares || shares <= 0) {
+      return res.status(400).json({ error: 'userId and shares are required' });
+    }
+
+    // Get investor wallet address
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+    if (!userDoc.exists) return res.status(404).json({ error: 'User not found' });
+    const walletAddress = userDoc.data().walletAddress;
+    if (!walletAddress) return res.status(400).json({ error: 'User has no Arc wallet yet' });
+
+    const signer = getPlatformSigner();
+    const propTokenAddr = process.env.PROP_TOKEN_ADDRESS;
+    const usdcAddr      = process.env.USDC_ADDRESS || '0x3600000000000000000000000000000000000000';
+
+    const propToken = new ethers.Contract(propTokenAddr, PROPTOKEN_ABI, signer);
+    const usdc      = new ethers.Contract(usdcAddr, USDC_ABI, signer);
+
+    // Calculate cost: shares * pricePerToken / 1e18
+    const pricePerToken = await propToken.pricePerToken();
+    const amountWei     = ethers.parseUnits(shares.toString(), 18);
+    const cost          = (amountWei * pricePerToken) / BigInt(10 ** 18);
+
+    // Step 1: Approve USDC
+    const approveTx = await usdc.approve(propTokenAddr, cost);
+    await approveTx.wait();
+    console.log('USDC approved:', approveTx.hash);
+
+    // Step 2: purchaseFor recipient
+    const purchaseTx = await propToken.purchaseFor(walletAddress, amountWei);
+    const receipt    = await purchaseTx.wait();
+    console.log('purchaseFor done:', receipt.hash);
+
+    // Record in Firestore
+    await admin.firestore().collection('transactions').add({
+      userId,
+      propertyId: 'lekki-heights-lagos',
+      type: 'purchase',
+      amountUSDC: Number(cost) / 1e6,
+      shares,
+      txHash: receipt.hash,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return res.status(200).json({ txHash: receipt.hash });
+  } catch (error) {
+    console.error('purchaseShares error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * approveKycOnChain — call KYCRegistry.approve(walletAddress).
+ *
+ * Body: { walletAddress: string }
+ * Returns: { txHash }
+ */
+exports.approveKycOnChain = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    const { walletAddress } = req.body;
+    if (!walletAddress) return res.status(400).json({ error: 'walletAddress is required' });
+
+    const signer = getPlatformSigner();
+    const kycRegistry = new ethers.Contract(
+      process.env.KYC_REGISTRY_ADDRESS,
+      KYC_ABI,
+      signer
+    );
+
+    const tx      = await kycRegistry.approve(walletAddress);
+    const receipt = await tx.wait();
+    console.log('KYC approved onchain:', walletAddress, receipt.hash);
+
+    return res.status(200).json({ txHash: receipt.hash });
+  } catch (error) {
+    console.error('approveKycOnChain error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * distributeRentOnChain — call RentDistributor.distributeRent().
+ *
+ * Body: {} (empty)
+ * Returns: { txHash }
+ */
+exports.distributeRentOnChain = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    const signer = getPlatformSigner();
+    const distributor = new ethers.Contract(
+      process.env.RENT_DISTRIBUTOR_ADDRESS,
+      DISTRIBUTOR_ABI,
+      signer
+    );
+
+    const tx      = await distributor.distributeRent();
+    const receipt = await tx.wait();
+    console.log('Rent distributed:', receipt.hash);
+
+    return res.status(200).json({ txHash: receipt.hash });
+  } catch (error) {
+    console.error('distributeRentOnChain error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});

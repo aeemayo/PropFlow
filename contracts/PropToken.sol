@@ -157,6 +157,45 @@ contract PropToken is ERC20, Ownable {
         emit SharesPurchased(msg.sender, amount, cost);
     }
 
+    /**
+     * @notice Purchase shares on behalf of a recipient (platform/admin only).
+     * @dev Called by the platform Cloud Function to purchase tokens without requiring
+     *      the recipient to sign the transaction directly. The platform wallet pays
+     *      the USDC cost; tokens are minted to `recipient`.
+     *
+     *      The recipient must be KYC-verified. The caller (platform wallet) must
+     *      have approved this contract to spend the USDC cost.
+     *
+     * @param recipient  The investor's Arc wallet address.
+     * @param amount     Number of PropTokens in 18-decimal units.
+     */
+    function purchaseFor(address recipient, uint256 amount) external onlyOwner {
+        require(amount > 0, "PropToken: zero amount");
+        require(
+            totalSupply() + amount <= totalShares,
+            "PropToken: exceeds total shares"
+        );
+        require(
+            kycRegistry.isVerified(recipient),
+            "KYC required"
+        );
+
+        uint256 cost = (amount * pricePerToken) / 1e18;
+        require(cost > 0, "PropToken: cost rounds to zero");
+
+        usdcToken.safeTransferFrom(msg.sender, address(this), cost);
+
+        if (!isHolder[recipient]) {
+            isHolder[recipient] = true;
+            _holders.push(recipient);
+        }
+
+        _mint(recipient, amount);
+        raised += cost;
+
+        emit SharesPurchased(recipient, amount, cost);
+    }
+
     // ──────────────────────────────────────────────
     //  Transfer guard — KYC compliance
     // ──────────────────────────────────────────────

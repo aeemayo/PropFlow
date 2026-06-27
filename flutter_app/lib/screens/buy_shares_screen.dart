@@ -7,13 +7,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../utils/theme.dart';
 import '../services/contract_service.dart';
 import '../services/firestore_service.dart';
+import '../services/cloud_function_service.dart';
 import '../models/property.dart';
-import '../models/transaction.dart';
 
 class BuySharesScreen extends StatefulWidget {
   final Property? property;
-
-  static String investorPrivateKey = 'YOUR_PRIVATE_KEY';
 
   const BuySharesScreen({super.key, this.property});
 
@@ -23,8 +21,6 @@ class BuySharesScreen extends StatefulWidget {
 
 class _BuySharesScreenState extends State<BuySharesScreen> {
   final _sharesController = TextEditingController();
-  final _privateKeyController = TextEditingController(text: BuySharesScreen.investorPrivateKey);
-  bool _obscurePrivateKey = true;
   bool _isProcessing = false;
   String? _txHash;
   double _usdcCost = 0;
@@ -41,7 +37,6 @@ class _BuySharesScreenState extends State<BuySharesScreen> {
   @override
   void dispose() {
     _sharesController.dispose();
-    _privateKeyController.dispose();
     super.dispose();
   }
 
@@ -64,34 +59,12 @@ class _BuySharesScreenState extends State<BuySharesScreen> {
       return;
     }
 
-    final key = BuySharesScreen.investorPrivateKey.trim();
-    if (key == 'YOUR_PRIVATE_KEY' || key.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your Signer Private Key to purchase shares.'),
-          backgroundColor: AppTheme.error,
-        ),
-      );
-      return;
-    }
-
-    final cleanedKey = key.startsWith('0x') ? key.substring(2) : key;
-    if (cleanedKey.length != 64) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invalid Private Key. Must be a 64-character hex string.'),
-          backgroundColor: AppTheme.error,
-        ),
-      );
-      return;
-    }
-
     // Check KYC status
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
     final firestoreService = context.read<FirestoreService>();
-    final contractService = context.read<ContractService>();
+    final cloudFunctions = context.read<CloudFunctionService>();
     final user = await firestoreService.getUser(uid);
 
     if (user == null || !user.isKycApproved) {
@@ -109,33 +82,12 @@ class _BuySharesScreenState extends State<BuySharesScreen> {
     setState(() => _isProcessing = true);
 
     try {
-
-      // Convert shares to 18-decimal token units
-      final amount = ContractService.toWei(shares.toDouble());
-
-      // NOTE: For hackathon demo, you'd need to provide the private key.
-      // In production, this would go through Circle's transaction API.
-      // For now, show the tx simulation flow.
-
-      final txHash = await contractService.purchaseTokens(
-        privateKey: key,
-        amount: amount,
+      final txHash = await cloudFunctions.purchaseShares(
+        userId: uid,
+        shares: shares,
       );
 
       setState(() => _txHash = txHash);
-
-      // Record transaction in Firestore
-      await firestoreService.recordTransaction(
-        PropertyTransaction(
-          id: '',
-          userId: uid,
-          propertyId: _property.id,
-          type: TransactionType.purchase,
-          amountUSDC: _usdcCost,
-          shares: shares,
-          txHash: txHash,
-        ),
-      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -360,44 +312,6 @@ class _BuySharesScreenState extends State<BuySharesScreen> {
               ),
             ],
           ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Private Key input field
-        Text(
-          'Signer Private Key (Hex)',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _privateKeyController,
-          obscureText: _obscurePrivateKey,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 14,
-            color: AppTheme.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: 'Enter 64-character hex private key...',
-            hintStyle: GoogleFonts.inter(color: AppTheme.textMuted),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePrivateKey ? Icons.visibility_off : Icons.visibility,
-                color: AppTheme.textMuted,
-                size: 20,
-              ),
-              onPressed: () {
-                setState(() => _obscurePrivateKey = !_obscurePrivateKey);
-              },
-            ),
-          ),
-          onChanged: (val) {
-            BuySharesScreen.investorPrivateKey = val;
-          },
         ),
 
         const SizedBox(height: 28),

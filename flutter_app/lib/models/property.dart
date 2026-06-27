@@ -70,10 +70,10 @@ class Property {
 
   /// Hardcoded demo property for the hackathon MVP.
   static Property demoProperty() => Property(
-        id: 'marina-studio-dubai',
-        reraNumber: 'RERA-DXB-2024-00142',
-        name: 'Marina Studio — Dubai',
-        location: 'Dubai Marina, UAE',
+        id: 'lekki-heights-lagos',
+        reraNumber: 'LASRERA-LAG-2024-00891',
+        name: 'Lekki Heights — Lagos',
+        location: 'Lekki Phase 1, Lagos, Nigeria',
         valuationUSD: 200000,
         totalShares: 100000,
         pricePerShare: 2.0,
