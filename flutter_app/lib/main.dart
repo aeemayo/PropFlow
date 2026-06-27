@@ -34,7 +34,7 @@ class PropFlowApp extends StatelessWidget {
         Provider<CloudFunctionService>(create: (_) => CloudFunctionService()),
       ],
       child: MaterialApp(
-        title: 'PropFlow',
+        title: 'Propflow',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: const AuthGate(),

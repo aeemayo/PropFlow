@@ -30,7 +30,7 @@ class PropertyListingScreen extends StatelessWidget {
               titlePadding:
                   const EdgeInsets.only(left: 20, bottom: 16),
               title: Text(
-                'PropFlow',
+                'Propflow',
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,

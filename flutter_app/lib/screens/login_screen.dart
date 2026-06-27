@@ -189,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 24),
 
                     Text(
-                      'PropFlow',
+                      'Propflow',
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 36,
                         fontWeight: FontWeight.w700,
