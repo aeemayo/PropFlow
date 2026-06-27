@@ -19,6 +19,32 @@ class CloudFunctionService {
   /// [shares]  — number of whole shares to purchase
   ///
   /// Returns the transaction hash on success.
+  /// Helper to safely parse JSON response or throw a clean error when server returns HTML/error pages.
+  Map<String, dynamic> _parseResponse(http.Response response, String defaultMessage) {
+    if (response.statusCode != 200) {
+      try {
+        final body = jsonDecode(response.body);
+        throw Exception(body['error'] ?? defaultMessage);
+      } catch (_) {
+        throw Exception('$defaultMessage (Server returned status ${response.statusCode})');
+      }
+    }
+    try {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw Exception('Failed to parse server response.');
+    }
+  }
+
+  /// Purchase PropToken shares on behalf of the investor.
+  ///
+  /// The Cloud Function uses the platform wallet to call
+  /// PropToken.purchaseFor(recipientAddress, amount).
+  ///
+  /// [userId]  — Firebase UID (used to look up walletAddress in Firestore)
+  /// [shares]  — number of whole shares to purchase
+  ///
+  /// Returns the transaction hash on success.
   Future<String> purchaseShares({
     required String userId,
     required int shares,
@@ -28,11 +54,7 @@ class CloudFunctionService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'userId': userId, 'shares': shares}),
     );
-    if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
-      throw Exception(body['error'] ?? 'purchaseShares failed');
-    }
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = _parseResponse(response, 'Purchase shares failed');
     return data['txHash'] as String;
   }
 
@@ -47,11 +69,7 @@ class CloudFunctionService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'walletAddress': walletAddress}),
     );
-    if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
-      throw Exception(body['error'] ?? 'approveKycOnChain failed');
-    }
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = _parseResponse(response, 'Approve KYC on-chain failed');
     return data['txHash'] as String;
   }
 
@@ -64,11 +82,7 @@ class CloudFunctionService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({}),
     );
-    if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
-      throw Exception(body['error'] ?? 'distributeRentOnChain failed');
-    }
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = _parseResponse(response, 'Distribute rent on-chain failed');
     return data['txHash'] as String;
   }
 }
