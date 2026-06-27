@@ -256,7 +256,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               ),
               _BalanceStat(
                 label: 'Rent Earned',
-                value: '\$${_totalRentEarned.toStringAsFixed(2)}',
+                value: '${_totalRentEarned.toStringAsFixed(2)} USDC',
                 icon: Icons.payments_outlined,
                 color: AppTheme.secondary,
               ),

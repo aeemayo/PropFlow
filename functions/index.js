@@ -374,9 +374,26 @@ exports.claimRent = functions.https.onRequest(async (req, res) => {
       signer
     );
 
+    // Read claimable amount before claiming
+    const claimedAmount = await distributor.getClaimableRent(walletAddress);
+
     const tx      = await distributor.claimRentFor(walletAddress);
     const receipt = await tx.wait();
     console.log('Rent claimed:', walletAddress, receipt.hash);
+
+    // Record the transaction in Firestore for the portfolio transaction history
+    if (claimedAmount > 0) {
+      await admin.firestore().collection('transactions').add({
+        userId: userId,
+        propertyId: 'lekki-heights-lagos',
+        type: 'rent',
+        amountUSDC: Number(ethers.formatUnits(claimedAmount, 6)),
+        shares: 0,
+        txHash: receipt.hash,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log('Recorded rent transaction in Firestore:', userId, claimedAmount.toString());
+    }
 
     return res.status(200).json({ txHash: receipt.hash });
   } catch (error) {

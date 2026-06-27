@@ -209,61 +209,7 @@ class ContractService {
   //  Write Operations (require credentials)
   // ══════════════════════════════════════════════
 
-  /// Purchase PropTokens. Requires:
-  /// 1. USDC approval to PropToken contract
-  /// 2. Calling purchase(amount)
-  ///
-  /// [privateKey] — the signer's private key (hex string).
-  /// [amount] — number of tokens in 18-decimal units.
-  ///
-  /// Returns the transaction hash.
-  Future<String> purchaseTokens({
-    required String privateKey,
-    required BigInt amount,
-  }) async {
-    await initialize();
-    final credentials = EthPrivateKey.fromHex(privateKey);
-    final sender = credentials.address;
 
-    // Calculate USDC cost
-    final pricePerToken = await getPricePerToken();
-    final cost = (amount * pricePerToken) ~/ BigInt.from(10).pow(18);
-
-    // Step 1: Approve USDC spending
-    final approveTx = Transaction.callContract(
-      contract: _usdcToken!,
-      function: _usdcToken!.function('approve'),
-      parameters: [
-        EthereumAddress.fromHex(AppConstants.propTokenAddress),
-        cost,
-      ],
-    );
-
-    await _client.sendTransaction(
-      credentials,
-      approveTx,
-      chainId: AppConstants.arcChainId,
-    );
-
-    // Brief delay to ensure approval is mined (Arc has sub-second finality)
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Step 2: Purchase tokens
-    final purchaseTx = Transaction.callContract(
-      contract: _propToken!,
-      function: _propToken!.function('purchase'),
-      parameters: [amount],
-      from: sender,
-    );
-
-    final txHash = await _client.sendTransaction(
-      credentials,
-      purchaseTx,
-      chainId: AppConstants.arcChainId,
-    );
-
-    return txHash;
-  }
 
   /// Approve a KYC address (admin only).
   Future<String> approveKyc({
