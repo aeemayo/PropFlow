@@ -19,7 +19,6 @@ class PortfolioScreen extends StatefulWidget {
 class _PortfolioScreenState extends State<PortfolioScreen> {
   BigInt _tokenBalance = BigInt.zero;
   BigInt _usdcBalance = BigInt.zero;
-  double _totalRentEarned = 0;
   bool _isLoading = true;
 
   @override
@@ -53,7 +52,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         }
       }
 
-      _totalRentEarned = await firestoreService.getTotalRentEarned(uid);
+      // Rent earned is loaded via real-time stream inside build
     } catch (e) {
       debugPrint('Portfolio load error: $e');
     } finally {
@@ -96,7 +95,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Balance overview card
-                    _buildBalanceCard(),
+                    _buildBalanceCard(uid, firestoreService),
 
                     const SizedBox(height: 20),
 
@@ -185,7 +184,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     );
   }
 
-  Widget _buildBalanceCard() {
+  Widget _buildBalanceCard(String uid, FirestoreService firestoreService) {
     final tokenDisplay = ContractService.fromWei(_tokenBalance);
     final usdcDisplay = ContractService.fromUsdc(_usdcBalance);
 
@@ -246,21 +245,31 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           const SizedBox(height: 16),
           const Divider(color: Color(0xFF2A3352)),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _BalanceStat(
-                label: 'USDC Balance',
-                value: usdcDisplay.toStringAsFixed(2),
-                icon: Icons.account_balance_wallet_outlined,
-              ),
-              _BalanceStat(
-                label: 'Rent Earned',
-                value: '${_totalRentEarned.toStringAsFixed(2)} USDC',
-                icon: Icons.payments_outlined,
-                color: AppTheme.secondary,
-              ),
-            ],
+          StreamBuilder<List<PropertyTransaction>>(
+            stream: firestoreService.streamUserTransactions(uid),
+            builder: (context, snapshot) {
+              final txs = snapshot.data ?? [];
+              final rentEarned = txs
+                  .where((t) => t.type == TransactionType.rent)
+                  .fold<double>(0.0, (sum, t) => sum + t.amountUSDC);
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _BalanceStat(
+                    label: 'USDC Balance',
+                    value: usdcDisplay.toStringAsFixed(2),
+                    icon: Icons.account_balance_wallet_outlined,
+                  ),
+                  _BalanceStat(
+                    label: 'Rent Earned',
+                    value: '${rentEarned.toStringAsFixed(2)} USDC',
+                    icon: Icons.payments_outlined,
+                    color: AppTheme.secondary,
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
