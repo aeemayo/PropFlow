@@ -16,6 +16,12 @@ admin.initializeApp();
 // Import modules
 const { createWallet, getWallet } = require("./circle/wallets");
 const { gatewayWebhook } = require("./circle/gateway");
+const {
+  sendKycApprovalRequest,
+  sendConfirmation,
+  editMessageAfterDecision,
+  verifyToken,
+} = require("./telegram/notify");
 
 // ══════════════════════════════════════════════
 //  Circle Wallets API — Callable Functions
@@ -155,6 +161,49 @@ exports.onUserCreated = functions.firestore
       console.log(`Wallet created for user ${uid}: ${result.walletAddress}`);
     } catch (error) {
       console.error(`Auto-wallet creation failed for ${uid}:`, error);
+    }
+
+    return null;
+  });
+
+/**
+ * onKycSubmitted — fires when a user's kycStatus changes TO 'pending'.
+ * Sends you a Telegram message with Approve/Reject buttons.
+ *
+ * This only fires on the pending->pending transition guard below to
+ * avoid re-notifying on every unrelated field update to the user doc.
+ */
+exports.onKycSubmitted = functions.firestore
+  .document("users/{uid}")
+  .onUpdate(async (change, context) => {
+    const uid = context.params.uid;
+    const before = change.before.data();
+    const after = change.after.data();
+
+    // Only fire on the transition into 'pending'
+    if (before.kycStatus === "pending" || after.kycStatus !== "pending") {
+      return null;
+    }
+
+    if (!after.walletAddress) {
+      console.warn(`KYC submitted for ${uid} but no walletAddress yet — skipping notify`);
+      return null;
+    }
+
+    try {
+      const functionsBaseUrl = `https://${process.env.GCLOUD_REGION || "us-central1"}-${process.env.GCLOUD_PROJECT}.cloudfunctions.net`;
+
+      await sendKycApprovalRequest({
+        functionsBaseUrl,
+        userId: uid,
+        fullName: after.fullName || "Unknown",
+        nin: after.nin || "N/A",
+        walletAddress: after.walletAddress,
+      });
+
+      console.log(`Telegram KYC notification sent for ${uid}`);
+    } catch (error) {
+      console.error(`Failed to send Telegram notification for ${uid}:`, error);
     }
 
     return null;
@@ -401,3 +450,96 @@ exports.claimRent = functions.https.onRequest(async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 });
+
+// ══════════════════════════════════════════════
+//  Telegram Bot — KYC Approval Webhook
+// ══════════════════════════════════════════════
+
+/**
+ * telegramWebhook — receives button taps from your KYC approval
+ * message and approves/rejects on-chain accordingly.
+ *
+ * Set this as your bot's webhook URL after deploying:
+ *   curl -F "url=https://<region>-<project>.cloudfunctions.net/telegramWebhook" \
+ *        https://api.telegram.org/bot<TOKEN>/setWebhook
+ */
+exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
+  try {
+    const update = req.body;
+    const callback = update.callback_query;
+
+    // Ignore anything that isn't a button tap
+    if (!callback || !callback.data) {
+      return res.status(200).send('ok');
+    }
+
+    const [action, userId, token] = callback.data.split(':');
+    const chatId = callback.message.chat.id;
+    const messageId = callback.message.message_id;
+
+    // Reject taps from anyone other than your configured chat
+    if (String(chatId) !== String(process.env.TELEGRAM_CHAT_ID)) {
+      console.warn(`Telegram webhook called from unauthorized chat: ${chatId}`);
+      return res.status(200).send('ok');
+    }
+
+    if (!verifyToken(userId, token)) {
+      await editMessageAfterDecision(chatId, messageId, '⚠️ Invalid or expired approval link.');
+      return res.status(200).send('ok');
+    }
+
+    const userRef = admin.firestore().collection('users').doc(userId);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      await editMessageAfterDecision(chatId, messageId, '⚠️ User not found.');
+      return res.status(200).send('ok');
+    }
+
+    const userData = userDoc.data();
+
+    if (action === 'approve') {
+      // Call the existing on-chain approval logic directly
+      const signer = getPlatformSigner();
+      const kycRegistry = new ethers.Contract(
+        process.env.KYC_REGISTRY_ADDRESS,
+        KYC_ABI,
+        signer
+      );
+      const tx = await kycRegistry.approve(userData.walletAddress);
+      const receipt = await tx.wait();
+
+      await userRef.update({ kycStatus: 'approved' });
+
+      await editMessageAfterDecision(
+        chatId,
+        messageId,
+        `✅ *Approved* — ${userData.fullName}\n\nTx: \`${receipt.hash}\``
+      );
+      console.log(`KYC approved via Telegram for ${userId}: ${receipt.hash}`);
+    } else if (action === 'reject') {
+      await userRef.update({ kycStatus: 'rejected' });
+      await editMessageAfterDecision(
+        chatId,
+        messageId,
+        `❌ *Rejected* — ${userData.fullName}`
+      );
+      console.log(`KYC rejected via Telegram for ${userId}`);
+    }
+
+    // Acknowledge the button tap so Telegram stops showing a loading spinner
+    await axiosAcknowledgeCallback(callback.id);
+
+    return res.status(200).send('ok');
+  } catch (error) {
+    console.error('telegramWebhook error:', error);
+    return res.status(200).send('ok'); // Always 200 so Telegram doesn't retry indefinitely
+  }
+});
+
+async function axiosAcknowledgeCallback(callbackQueryId) {
+  const axios = require('axios');
+  await axios.post(
+    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`,
+    { callback_query_id: callbackQueryId }
+  );
+}
