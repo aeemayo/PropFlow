@@ -540,6 +540,21 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
     return res.status(200).send('ok');
   } catch (error) {
     console.error('telegramWebhook error:', error);
+    try {
+      const update = req.body;
+      const callback = update?.callback_query;
+      if (callback && callback.message) {
+        const chatId = callback.message.chat.id;
+        const messageId = callback.message.message_id;
+        await editMessageAfterDecision(
+          chatId,
+          messageId,
+          `⚠️ *Failed* — ${error.message || error}`
+        );
+      }
+    } catch (innerError) {
+      console.error('Failed to edit message after webhook error:', innerError);
+    }
     return res.status(200).send('ok'); // Always 200 so Telegram doesn't retry indefinitely
   }
 });
