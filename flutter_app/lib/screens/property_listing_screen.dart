@@ -283,6 +283,9 @@ class _PropertyCard extends StatelessWidget {
                     top: 12,
                     left: 12,
                     child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width - 190,
+                      ),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
@@ -290,16 +293,21 @@ class _PropertyCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.location_on_outlined,
                               color: Colors.white, size: 14),
                           const SizedBox(width: 4),
-                          Text(
-                            property.location,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
+                          Flexible(
+                            child: Text(
+                              property.location,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
